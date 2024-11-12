@@ -19,6 +19,9 @@ export class ShortenEntity {
   @Generated('uuid')
   shortCode: string;
 
+  @Column({ type: 'int', default: 0 })
+  accessCount: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -12,7 +12,9 @@ export class ShortenService {
     private readonly shortenRepository: Repository<ShortenEntity>,
   ) {}
 
-  async create(createShortenDto: CreateShortenDto): Promise<ShortenEntity> {
+  async create(
+    createShortenDto: CreateShortenDto,
+  ): Promise<Omit<ShortenEntity, 'accessCount'>> {
     // check if url existed
     if (this.checkLongUrlExists(createShortenDto.url)) {
       throw new HttpException('Url existed', HttpStatus.BAD_REQUEST);
@@ -24,32 +26,64 @@ export class ShortenService {
   }
 
   async retrieveOriginalUrl(shortUrl: string): Promise<ShortenEntity> {
-    return this.findOne({ url: shortUrl });
+    // check shortUrl existed
+    if (!(await this.checkShortUrlExists(shortUrl))) {
+      throw new HttpException('Url not found.', HttpStatus.NOT_FOUND);
+    }
+    //  count number get short url
+    //
+    await this.increaseViews(shortUrl);
+
+    return this.shortenRepository.findOne({ where: { url: shortUrl } });
   }
 
-  findOne(param: any): Promise<ShortenEntity> {
+  findOne(param: any): Promise<Omit<ShortenEntity, 'accessCount'>> {
     return this.shortenRepository.findOneBy(param).catch((reason) => {
       throw new HttpException('URL not found', HttpStatus.NOT_FOUND);
     });
   }
 
-  async update(shortUrl: string, updateShortenDto: UpdateShortenDto) {
+  async update(
+    shortUrl: string,
+    updateShortenDto: UpdateShortenDto,
+  ): Promise<Omit<ShortenEntity, 'accessCount'>> {
     // check short url existed
     if (
       !(await this.shortenRepository.exists({ where: { shortCode: shortUrl } }))
     ) {
       throw new HttpException('URL not found!', HttpStatus.NOT_FOUND);
     }
-    // const update
-    // return `This action updates a #${id} shorten`;
+    await this.shortenRepository.update(
+      { shortCode: shortUrl },
+      { url: updateShortenDto.url },
+    );
+    return await this.findOne({ shortCode: shortUrl });
   }
 
-  findAll() {
-    return `This action returns all shorten`;
+  async remove(shortUrl: string) {
+    if (!this.checkShortUrlExists(shortUrl)) {
+      throw new HttpException('URL not found!', HttpStatus.NOT_FOUND);
+    }
+    return await this.shortenRepository.delete({ shortCode: shortUrl });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} shorten`;
+  async getUrlStatistics(shortUrl: string): Promise<ShortenEntity> {
+    if (!this.checkShortUrlExists(shortUrl)) {
+      throw new HttpException('Url not found!', HttpStatus.NOT_FOUND);
+    }
+    return this.shortenRepository.findOne({ where: { shortCode: shortUrl } });
+  }
+
+  async increaseViews(shortUrl: string) {
+    const originalShorten = await this.shortenRepository.findOne({
+      where: { shortCode: shortUrl },
+    });
+    originalShorten.accessCount += 1;
+    await this.shortenRepository.save(originalShorten);
+  }
+
+  async checkShortUrlExists(url) {
+    return await this.shortenRepository.exists({ where: { shortCode: url } });
   }
 
   async checkLongUrlExists(url) {

@@ -20,6 +20,11 @@ export class ShortenController {
     return this.shortenService.create(createShortenDto);
   }
 
+  @Get(':shortUrl/starts')
+  getUrlStatistics(@Param('shortUrl') shortUrl: string) {
+    return this.shortenService.getUrlStatistics(shortUrl);
+  }
+
   @Get(':shortUrl')
   retrieveOriginalUrl(@Param('shortUrl') shortUrl: string) {
     return this.shortenService.retrieveOriginalUrl(shortUrl);
@@ -33,18 +38,8 @@ export class ShortenController {
     return this.shortenService.update(shortUrl, updateShortenDto);
   }
 
-  @Get()
-  findAll() {
-    return this.shortenService.findAll();
-  }
-
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateShortenDto: UpdateShortenDto) {
-  //   return this.shortenService.update(+id, updateShortenDto);
-  // }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.shortenService.remove(+id);
+  @Delete(':shortUrl')
+  remove(@Param('shortUrl') shortUrl: string) {
+    return this.shortenService.remove(shortUrl);
   }
 }
